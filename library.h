@@ -1,0 +1,6 @@
+#ifndef EMBEDDEDPACK_LIBRARY_H
+#define EMBEDDEDPACK_LIBRARY_H
+
+void hello();
+
+#endif //EMBEDDEDPACK_LIBRARY_H
