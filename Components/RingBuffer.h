@@ -16,18 +16,18 @@ public:
         write_handle.store(read_handle.load());
     };
 
-    static consteval uint32_t overall_len() { return up_power_of_2(N)-1; }
-    uint32_t get_len() { return (up_power_of_2(N)+write_handle.load()-read_handle.load()) & overall_len();}
+    static consteval uint32_t overall_index() { return up_power_of_2(N)-1; }
+    uint32_t get_index_len() { return (up_power_of_2(N)+write_handle.load()-read_handle.load()) & overall_index();}
     uint32_t get_read_index() { return  read_handle.load() - &buffer[0];}
     uint32_t get_write_index() { return write_handle.load() - &buffer[0];}
 
-    const T operator[](const uint32_t index) { return *(buffer+((get_read_index()+index)&overall_len())); }
+    const T operator[](const uint32_t index) { return *(buffer+((get_read_index()+index)&overall_index())); }
     T* get() {return read_handle.load(); }
 
     bool write_data(T* data, uint32_t len) {
-        if (overall_len()-get_len() < len)
+        if (overall_index()-get_index_len() < len)
             return false;
-        if (overall_len() - get_write_index() >= len) {
+        if (overall_index() - get_write_index() >= len) {
             memcpy(write_handle.load(), data, len*sizeof(T));
             add_write(len);
             return true;
@@ -40,7 +40,7 @@ public:
     }
 
     bool get_data(T*data, uint32_t len) {
-        if (get_len() < len)
+        if (get_index_len() < len)
             return false;
         if (read_handle.load() < write_handle.load()) {
             memcpy(data, read_handle.load(), len*sizeof(T));
@@ -53,8 +53,8 @@ public:
         return true;
     }
 
-    void add_write(uint32_t len) {write_handle.store(&buffer[0]+((get_write_index()+len)&overall_len()));}
-    void add_read(uint32_t len = 1) {read_handle.store(&buffer[0]+((get_read_index()+len)&overall_len()));}
+    void add_write(uint32_t len) {write_handle.store(&buffer[0]+((get_write_index()+len)&overall_index()));}
+    void add_read(uint32_t len = 1) {read_handle.store(&buffer[0]+((get_read_index()+len)&overall_index()));}
     void reset() {
         read_handle.store(&buffer[0]) ;
         write_handle.store(read_handle.load());
