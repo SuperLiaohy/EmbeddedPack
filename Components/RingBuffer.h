@@ -8,7 +8,7 @@
 #include <atomic>
 #include <string.h>
 
-template<uint32_t N>
+template<uint32_t N, typename T = uint8_t>
 class RingBuffer {
 public:
     RingBuffer() {
@@ -21,34 +21,34 @@ public:
     uint32_t get_read_index() { return  read_handle.load() - &buffer[0];}
     uint32_t get_write_index() { return write_handle.load() - &buffer[0];}
 
-    const uint8_t operator[](const uint32_t index) { return *(buffer+((get_read_index()+index)&overall_len())); }
-    uint8_t* get() {return read_handle.load(); }
+    const T operator[](const uint32_t index) { return *(buffer+((get_read_index()+index)&overall_len())); }
+    T* get() {return read_handle.load(); }
 
-    bool write_data(uint8_t* data, uint32_t len) {
+    bool write_data(T* data, uint32_t len) {
         if (overall_len()-get_len() < len)
             return false;
         if (overall_len() - get_write_index() >= len) {
-            memcpy(write_handle.load(), data, len);
+            memcpy(write_handle.load(), data, len*sizeof(T));
             add_write(len);
             return true;
         }
-        memcpy(write_handle.load(), data, up_power_of_2(N) - get_write_index());
+        memcpy(write_handle.load(), data, (up_power_of_2(N) - get_write_index())*sizeof(T));
         // add_write(up_power_of_2(N) - get_write_index());
-        memcpy(buffer, data + up_power_of_2(N) - get_write_index(), len-(up_power_of_2(N)-get_write_index()));
+        memcpy(buffer, data + up_power_of_2(N) - get_write_index(), (len-(up_power_of_2(N)-get_write_index()))*sizeof(T));
         add_write(len);
         return true;
     }
 
-    bool get_data(uint8_t*data, uint32_t len) {
+    bool get_data(T*data, uint32_t len) {
         if (get_len() < len)
             return false;
         if (read_handle.load() < write_handle.load()) {
-            memcpy(data, read_handle.load(), len);
+            memcpy(data, read_handle.load(), len*sizeof(T));
             add_read(len);
             return true;
         }
-        memcpy(data, read_handle.load(), up_power_of_2(N) - get_read_index());
-        memcpy(data + up_power_of_2(N) - get_read_index(), buffer, len-(up_power_of_2(N)-get_read_index()));
+        memcpy(data, read_handle.load(), (up_power_of_2(N) - get_read_index())*sizeof(T));
+        memcpy(data + up_power_of_2(N) - get_read_index(), buffer, (len-(up_power_of_2(N)-get_read_index()))*sizeof(T));
         add_read(len);
         return true;
     }
@@ -68,10 +68,10 @@ private:
         return number;
     }
 
-    uint8_t buffer[up_power_of_2(N)];
+    T buffer[up_power_of_2(N)];
 
-    std::atomic<uint8_t*> write_handle;
-    std::atomic<uint8_t*> read_handle;
+    std::atomic<T*> write_handle;
+    std::atomic<T*> read_handle;
 
 
 };
