@@ -55,7 +55,10 @@ public:
 
     void add_write(uint32_t len) {write_handle.store(&buffer[0]+((get_write_index()+len)&overall_len()));}
     void add_read(uint32_t len = 1) {read_handle.store(&buffer[0]+((get_read_index()+len)&overall_len()));}
-
+    void reset() {
+        read_handle.store(&buffer[0]) ;
+        write_handle.store(read_handle.load());
+    }
 private:
     static consteval uint32_t up_power_of_2(uint32_t number) {
         if (number == 0)
