@@ -1,6 +1,6 @@
 #ifndef EMBEDDEDPACK_LIBRARY_H
 #define EMBEDDEDPACK_LIBRARY_H
 
-void hello();
+int main();
 
 #endif //EMBEDDEDPACK_LIBRARY_H
