@@ -8,10 +8,6 @@
 #include "Components/Detect.h"
 #include "Components/Manager.h"
 
-EP::Component::Manager<EP::Component::Detect, 10>& detectManager() {
-    static EP::Component::Manager<EP::Component::Detect, 10> manager;
-    return manager;
-};
 
 auto get_systime() -> uint32_t {
     static auto start_time = std::chrono::high_resolution_clock::now();
@@ -24,16 +20,16 @@ auto get_systime() -> uint32_t {
 
 int main() {
 
-
+    auto& detectManager = EP::Component::Manager<EP::Component::Detect, 10>::instance();
     // EP::Component::Detect::State s = EP::Component::Detect::State::LOSE;
-    auto detectPtr = detectManager().make_managed(1000,
+    auto detectPtr0 = detectManager.make_managed(1000,
         [](void* parament){std::cout << *static_cast<int*>(parament) << " Working" << std::endl;},
         [](void* parament){std::cout << *static_cast<int*>(parament) << " Missing" << std::endl;},
         [](void* parament){std::cout << *static_cast<int*>(parament) << " Recover" << std::endl;},
         [](void* parament){std::cout << *static_cast<int*>(parament) << " Lose" << std::endl;}
         );
 
-    auto detectPtr1 = detectManager().make_managed(1000,
+    auto detectPtr1 = detectManager.make_managed(1000,
         [](void* parament){std::cout << *static_cast<int*>(parament) << " Working" << std::endl;},
         [](void* parament){std::cout << *static_cast<int*>(parament) << " Missing" << std::endl;},
         [](void* parament){std::cout << *static_cast<int*>(parament) << " Recover" << std::endl;},
@@ -41,7 +37,7 @@ int main() {
         );
 
     {
-        auto detectPtr2 = detectManager().make_managed(1000,
+        auto detectPtr2 = detectManager.make_managed(1000,
            [](void* parament){std::cout << *static_cast<int*>(parament) << " Working" << std::endl;},
            [](void* parament){std::cout << *static_cast<int*>(parament) << " Missing" << std::endl;},
            [](void* parament){std::cout << *static_cast<int*>(parament) << " Recover" << std::endl;},
@@ -49,18 +45,20 @@ int main() {
            );
     }
 
-    auto detectPtr3 = detectManager().make_managed(1000,
+    auto detectPtr3 = detectManager.make_managed(1000,
         [](void* parament){std::cout << *static_cast<int*>(parament) << " Working" << std::endl;},
         [](void* parament){std::cout << *static_cast<int*>(parament) << " Missing" << std::endl;},
         [](void* parament){std::cout << *static_cast<int*>(parament) << " Recover" << std::endl;},
         [](void* parament){std::cout << *static_cast<int*>(parament) << " Lose" << std::endl;}
         );
 
-    std::thread detectThread([]() {
+    auto detectPtr4 = std::move(detectPtr3);
+
+    std::thread detectThread([&detectManager]() {
         while (true) {
             int index = 0;
             std::cout << "system_time: " << get_systime() << std::endl;
-            for (auto & detect : detectManager()) {
+            for (auto & detect : detectManager) {
                 ++index;
                 switch (detect.detect<get_systime>()) {
                     case EP::Component::Detect::LOSE:
@@ -83,7 +81,7 @@ int main() {
 
     while (true) {
         std::cout << "******************************" <<std::endl;
-        for (auto & detect : detectManager()) {
+        for (auto & detect : detectManager) {
             detect.update<get_systime>();
         }
         std::cout << "******************************" <<std::endl;

@@ -33,6 +33,7 @@ public:
     void recover(void *parament = nullptr) const { if (recoverFun) recoverFun(parament); }
     void lose(void *parament = nullptr) const { if (loseFun) loseFun(parament); }
 
+    ~Detect() {std::cout << "Detect::~Detect()" <<std::endl;}
 private:
     uint32_t maxInterval = 0;
     uint32_t lastUpdate = 0;

@@ -13,7 +13,7 @@ struct combo {
     using storage_t = std::aligned_storage_t<sizeof(T), alignof(T)>;
     explicit combo(indexType index = 0) : index(index) {};
     storage_t storage;
-    indexType index;
+    indexType index{0};
     ~combo() = default;
 };
 
@@ -24,31 +24,42 @@ public:
         static Manager instance;
         return instance;
     }
-
     class managed_ptr {
     public:
         managed_ptr() = delete;
         managed_ptr(const managed_ptr&) = delete;
         managed_ptr& operator=(const managed_ptr&) = delete;
 
+        managed_ptr(managed_ptr&& other) noexcept {this->ptr = other.ptr; other.ptr = nullptr;}
+        managed_ptr& operator=(managed_ptr&& other) noexcept {
+            if (this != &other) {
+                this->reset();
+                this->ptr = other.ptr;
+                other.ptr = nullptr;
+            }
+            return *this;
+        }
+
         T* operator->() const {return ptr;}
         indexType getIndex() const {return reinterpret_cast<combo<T,indexType>*>(ptr)->index;}
-        Manager* getManager() const {return reinterpret_cast<Manager*>(reinterpret_cast<combo<T,indexType>*>(ptr)-(reinterpret_cast<combo<T,indexType>*>(ptr)->index-1));}
-        ~managed_ptr() {std::destroy_at(ptr); getManager()->delete_member(getIndex());}
+        static Manager& getManager() {return Manager::instance();}
+        ~managed_ptr() {reset();}
     private:
         friend class Manager;
         explicit managed_ptr(T* ptr) {
             if (ptr == nullptr) {while (true);}
             this->ptr = ptr;
-        };
+        }
+        void reset() {
+            if (ptr) {
+                std::destroy_at(ptr);
+                getManager().delete_member(getIndex());
+                ptr = nullptr;
+            }
+        }
         T* ptr;
     };
-    Manager() {
-        for (uint32_t i = 0; i < N; i++) {
-            list[i].index = 0;
-        }
-        list[N-1].index = N;
-    };
+
     consteval static uint32_t capacity() {return N;}
     [[nodiscard]] uint32_t size() const {return number;}
     [[nodiscard]] uint32_t available() const {return N - number;}
@@ -62,9 +73,6 @@ public:
         combo<T,indexType>* cur;
         Manager* mgr;
     public:
-        using iterator_category = std::forward_iterator_tag;
-        using value_type = T;
-        using difference_type = std::ptrdiff_t;
         using pointer = T*;
         using reference = T&;
 
@@ -72,11 +80,9 @@ public:
         reference operator*() const { return *reinterpret_cast<T*>(&cur->storage); }
         pointer operator->() const { return reinterpret_cast<T*>(&cur->storage); }
 
-        // 前向迭代器需要支持 ++
         iterator& operator++() {
-            do {
-                ++cur;
-            } while (cur->index==0&&cur!=&mgr->list[N-1]);
+            if (cur != &mgr->list[N]) cur++;
+            while (cur != &mgr->list[N] && cur->index == 0) cur++;
             return *this;
         }
 
@@ -84,10 +90,16 @@ public:
         bool operator!=(const iterator& rhs) const { return cur != rhs.cur; }
     };
 
-    iterator begin() { return iterator(this, list); }
-    iterator end() { return iterator(this, &list[N-1]); }
+    iterator begin() {
+        combo<T, indexType>* first = &list[0];
+        while (first != &list[N] && first->index == 0) first++;
+        return iterator(this, first);
+    }
+    iterator end() { return iterator(this, &list[N]); }
 
 private:
+    Manager() = default;
+
     combo<T, indexType> list[N];
     uint32_t number = 0;
 
@@ -107,6 +119,4 @@ private:
         --number;
     }
 };
-
-
 }
