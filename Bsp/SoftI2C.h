@@ -8,7 +8,7 @@
 // 每八位一个Ack
 // SDA需要在SCL的高电平稳定数据，在SCL的低电平改变数据
 // I2C是线与的关系
-#include "config.h"
+#include "Config.h"
 #include <cstdint>
 
 template<gpio_pl io>

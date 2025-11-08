@@ -7,7 +7,7 @@
 
 #include "Components/Detect.h"
 #include "Components/Manager.h"
-
+#include "Math/Matrix/Matrix.hpp"
 
 auto get_systime() -> uint32_t {
     static auto start_time = std::chrono::high_resolution_clock::now();
@@ -20,98 +20,134 @@ auto get_systime() -> uint32_t {
 
 int main() {
 
-    auto& detectManager = EP::Component::Manager<EP::Component::Detect, 10>::instance();
-    // EP::Component::Detect::State s = EP::Component::Detect::State::LOSE;
-    auto detectPtr0 = detectManager.make_managed(1000,
-        [](void* parament){std::cout << *static_cast<int*>(parament) << " Working" << std::endl;},
-        [](void* parament){std::cout << *static_cast<int*>(parament) << " Missing" << std::endl;},
-        [](void* parament){std::cout << *static_cast<int*>(parament) << " Recover" << std::endl;},
-        [](void* parament){std::cout << *static_cast<int*>(parament) << " Lose" << std::endl;}
-        );
+    ColVec<3> v1({1, 2, 3});
+    ColVec<3> v2({1, 2, 3});
+    RowVec<3> a1({3, 2, 1});
+    RowVec<3> a2({3, 2, 1});
+    std::cout << "v1: " << v1 << std::endl;
+    std::cout << "v2: " << v2 << std::endl;
+    std::cout << "v1 * v2: " << v1 * v2 << std::endl;
+    std::cout << "v1 ^ v2: " << (v1 ^ v2) << std::endl;
+    std::cout << "a1: " << a1 << std::endl;
+    std::cout << "a2: " << a2 << std::endl;
+    std::cout << "a1 * v2: " << a1 * v2 << std::endl;
+    std::cout << "a1 ^ a2: " << (a1 ^ a2) << std::endl;
+    std::cout << "test a1: " << a1.transpose() << std::endl;
+    std::cout << "a1 transpose: " << ~a1 * a2 << std::endl;
+    std::cout << "3 * a1: " << 3 * a1 << std::endl;
+    std::cout << "3 * a1: " << a2 * 3 << std::endl;
 
-    auto detectPtr1 = detectManager.make_managed(1000,
-        [](void* parament){std::cout << *static_cast<int*>(parament) << " Working" << std::endl;},
-        [](void* parament){std::cout << *static_cast<int*>(parament) << " Missing" << std::endl;},
-        [](void* parament){std::cout << *static_cast<int*>(parament) << " Recover" << std::endl;},
-        [](void* parament){std::cout << *static_cast<int*>(parament) << " Lose" << std::endl;}
-        );
+    // float map[3][3] =
 
-    {
-        auto detectPtr2 = detectManager.make_managed(1000,
-           [](void* parament){std::cout << *static_cast<int*>(parament) << " Working" << std::endl;},
-           [](void* parament){std::cout << *static_cast<int*>(parament) << " Missing" << std::endl;},
-           [](void* parament){std::cout << *static_cast<int*>(parament) << " Recover" << std::endl;},
-           [](void* parament){std::cout << *static_cast<int*>(parament) << " Lose" << std::endl;}
-           );
-    }
-
-    auto detectPtr3 = detectManager.make_managed(1000,
-        [](void* parament){std::cout << *static_cast<int*>(parament) << " Working" << std::endl;},
-        [](void* parament){std::cout << *static_cast<int*>(parament) << " Missing" << std::endl;},
-        [](void* parament){std::cout << *static_cast<int*>(parament) << " Recover" << std::endl;},
-        [](void* parament){std::cout << *static_cast<int*>(parament) << " Lose" << std::endl;}
-        );
-
-    auto detectPtr4 = std::move(detectPtr3);
-
-    std::thread detectThread([&detectManager]() {
-        while (true) {
-            int index = 0;
-            std::cout << "system_time: " << get_systime() << std::endl;
-            for (auto & detect : detectManager) {
-                ++index;
-                switch (detect.detect<get_systime>()) {
-                    case EP::Component::Detect::LOSE:
-                        detect.lose(&index);
-                        break;
-                    case EP::Component::Detect::MISSING:
-                        detect.missing(&index);
-                        break;
-                    case EP::Component::Detect::WORKING:
-                        detect.working(&index);
-                        break;
-                    case EP::Component::Detect::RECOVER:
-                        detect.recover(&index);
-                        break;
-                }
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        }
+    Matrix<3,3> matrix({
+        {1,2,3},
+        {0,1,0},
+        {0,0,1}
     });
+    std::cout << "matrix: " << matrix << std::endl;
+    std::cout << "matrix transpose: " << matrix.transpose() << std::endl;
+    std::cout << "matrix transpose: " << matrix * matrix.transpose() << std::endl;
+    std::cout << "matrix inv: " << matrix.inv() * matrix << std::endl;
+    std::cout << "matrix inv: " << decltype(matrix)::eyes().inv() << std::endl;
 
-    while (true) {
-        std::cout << "******************************" <<std::endl;
-        for (auto & detect : detectManager) {
-            detect.update<get_systime>();
-        }
-        std::cout << "******************************" <<std::endl;
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    // matrix = nullptr;
+    if (matrix==nullptr) {
+        std::cout << "matrix is null" << std::endl;
+    } else {
+        std::cout << "matrix is not null" << std::endl;
     }
-    detectThread.join();
-
-    uint8_t str_buf[256]{};
-    std::cout << str_buf << std::endl;
-
-    EP::Component::RingBuffer buffer(6);
-    std::cout << "size: " << buffer.size() << std::endl;
-    std::cout << "capacity: " << buffer.capacity() << std::endl;
-    buffer.push_force((4));
-    buffer.push_force((2));
-    buffer.push_force((1));
-    buffer.push_force((3));
-    buffer.push_force((5));
-    buffer.push_force((3));
-    buffer.push_force((1));
-    buffer.push_force((0));
-    buffer.pop();
-    std::array<uint8_t,3> test ={6,7,8};
-    buffer.write_data_force(test.data(), test.size());
-    std::cout << "size: " << buffer.size() << std::endl;
-    std::cout << "capacity: " << buffer.capacity() << std::endl;
-    auto v = buffer.get_valid_container();
-    for (auto& item: v) {
-        std::cout << static_cast<uint32_t>(item) << std::endl;
-    }
+    // auto& detectManager = EP::Component::Manager<EP::Component::Detect<get_systime>, 10>::instance();
+    // // EP::Component::Detect::State s = EP::Component::Detect::State::LOSE;
+    // auto detectPtr0 = detectManager.make_managed(1000,
+    //     [](void* parament){std::cout << *static_cast<int*>(parament) << " Working" << std::endl;},
+    //     [](void* parament){std::cout << *static_cast<int*>(parament) << " Missing" << std::endl;},
+    //     [](void* parament){std::cout << *static_cast<int*>(parament) << " Recover" << std::endl;},
+    //     [](void* parament){std::cout << *static_cast<int*>(parament) << " Lose" << std::endl;}
+    //     );
+    //
+    // auto detectPtr1 = detectManager.make_managed(1000,
+    //     [](void* parament){std::cout << *static_cast<int*>(parament) << " Working" << std::endl;},
+    //     [](void* parament){std::cout << *static_cast<int*>(parament) << " Missing" << std::endl;},
+    //     [](void* parament){std::cout << *static_cast<int*>(parament) << " Recover" << std::endl;},
+    //     [](void* parament){std::cout << *static_cast<int*>(parament) << " Lose" << std::endl;}
+    //     );
+    //
+    // {
+    //     auto detectPtr2 = detectManager.make_managed(1000,
+    //        [](void* parament){std::cout << *static_cast<int*>(parament) << " Working" << std::endl;},
+    //        [](void* parament){std::cout << *static_cast<int*>(parament) << " Missing" << std::endl;},
+    //        [](void* parament){std::cout << *static_cast<int*>(parament) << " Recover" << std::endl;},
+    //        [](void* parament){std::cout << *static_cast<int*>(parament) << " Lose" << std::endl;}
+    //        );
+    // }
+    //
+    // auto detectPtr3 = detectManager.make_managed(1000,
+    //     [](void* parament){std::cout << *static_cast<int*>(parament) << " Working" << std::endl;},
+    //     [](void* parament){std::cout << *static_cast<int*>(parament) << " Missing" << std::endl;},
+    //     [](void* parament){std::cout << *static_cast<int*>(parament) << " Recover" << std::endl;},
+    //     [](void* parament){std::cout << *static_cast<int*>(parament) << " Lose" << std::endl;}
+    //     );
+    //
+    // auto detectPtr4 = std::move(detectPtr3);
+    //
+    // std::thread detectThread([&detectManager]() {
+    //     while (true) {
+    //         int index = 0;
+    //         std::cout << "system_time: " << get_systime() << std::endl;
+    //         for (auto & detect : detectManager) {
+    //             ++index;
+    //             switch (detect.detect()) {
+    //                 case EP::Component::detectDep::LOSE:
+    //                     detect.lose(&index);
+    //                     break;
+    //                 case EP::Component::detectDep::MISSING:
+    //                     detect.missing(&index);
+    //                     break;
+    //                 case EP::Component::detectDep::WORKING:
+    //                     detect.working(&index);
+    //                     break;
+    //                 case EP::Component::detectDep::RECOVER:
+    //                     detect.recover(&index);
+    //                     break;
+    //             }
+    //         }
+    //         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    //     }
+    // });
+    //
+    // while (true) {
+    //     std::cout << "******************************" <<std::endl;
+    //     for (auto & detect : detectManager) {
+    //         detect.update();
+    //     }
+    //     std::cout << "******************************" <<std::endl;
+    //
+    //     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    // }
+    // detectThread.join();
+    //
+    // uint8_t str_buf[256]{};
+    // std::cout << str_buf << std::endl;
+    //
+    // EP::Component::RingBuffer buffer(6);
+    // std::cout << "size: " << buffer.size() << std::endl;
+    // std::cout << "capacity: " << buffer.capacity() << std::endl;
+    // buffer.push_force((4));
+    // buffer.push_force((2));
+    // buffer.push_force((1));
+    // buffer.push_force((3));
+    // buffer.push_force((5));
+    // buffer.push_force((3));
+    // buffer.push_force((1));
+    // buffer.push_force((0));
+    // buffer.pop();
+    // std::array<uint8_t,3> test ={6,7,8};
+    // buffer.write_data_force(test.data(), test.size());
+    // std::cout << "size: " << buffer.size() << std::endl;
+    // std::cout << "capacity: " << buffer.capacity() << std::endl;
+    // auto v = buffer.get_valid_container();
+    // for (auto& item: v) {
+    //     std::cout << static_cast<uint32_t>(item) << std::endl;
+    // }
 
 }

@@ -5,9 +5,8 @@
 #ifndef QUATERNION_HPP
 #define QUATERNION_HPP
 
-#include "Matrix.hpp"
-#include "RowVec.hpp"
-#include "ColVec.hpp"
+#include "../Matrix/Matrix.hpp"
+
 
 namespace quaternion_dep {
     template<uint32_t T>

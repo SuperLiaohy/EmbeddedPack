@@ -7,7 +7,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
-#include "arm_math.h"
+#include "../arm_math.h"
 #ifdef __cplusplus
 }
 #endif

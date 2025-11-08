@@ -7,46 +7,35 @@
 #include "cstdint"
 
 template<typename T>
-concept PlatFormConcept = requires(T t) {
+concept mathPl = requires(T t) {
     typename T::status;
     typename T::MatrixInstance;
     std::declval<typename T::MatrixInstance>().pData;
-    {
+
     T::matrix_init(std::declval<typename T::MatrixInstance *>(),
-                   uint16_t(), uint16_t(), std::declval<float *>())
-    } -> std::same_as<void>;
-    {
+                   uint16_t(), uint16_t(), std::declval<float *>());
+
     T::matrix_add(std::declval<typename T::MatrixInstance *>(),
                   std::declval<typename T::MatrixInstance *>(),
-                  std::declval<typename T::MatrixInstance *>())
-    } -> std::same_as<void>;
+                  std::declval<typename T::MatrixInstance *>());
 
-    {
     T::matrix_sub(std::declval<typename T::MatrixInstance *>(),
                   std::declval<typename T::MatrixInstance *>(),
-                  std::declval<typename T::MatrixInstance *>())
-    } -> std::same_as<void>;
-    {
+                  std::declval<typename T::MatrixInstance *>());
+
     T::matrix_mul(std::declval<typename T::MatrixInstance *>(),
                   std::declval<typename T::MatrixInstance *>(),
-                  std::declval<typename T::MatrixInstance *>())
-    } -> std::same_as<void>;
+                  std::declval<typename T::MatrixInstance *>());
 
-    {
     T::matrix_scale(std::declval<typename T::MatrixInstance *>(),
                     std::declval<float>(),
-                    std::declval<typename T::MatrixInstance *>())
-    } -> std::same_as<void>;
+                    std::declval<typename T::MatrixInstance *>());
 
-    {
     T::matrix_trans(std::declval<typename T::MatrixInstance *>(),
-                    std::declval<typename T::MatrixInstance *>())
-    } -> std::same_as<void>;
+                    std::declval<typename T::MatrixInstance *>());
 
-    {
     T::matrix_inverse(std::declval<typename T::MatrixInstance *>(),
-                    std::declval<typename T::MatrixInstance *>())
-    } -> std::same_as<typename T::status>;
+                    std::declval<typename T::MatrixInstance *>());
 };
 
 

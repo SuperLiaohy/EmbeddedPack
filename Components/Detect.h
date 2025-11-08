@@ -8,8 +8,7 @@
 #include <cstdint>
 
 namespace EP::Component {
-class Detect {
-public:
+namespace detectDep {
     using fun = void(void *);
     enum State : uint8_t{
         WORKING,
@@ -17,15 +16,21 @@ public:
         RECOVER,
         LOSE
     };
+}
+template<auto sysTime>
+class Detect {
+    using fun = detectDep::fun;
+    using State = detectDep::State;
+public:
     explicit Detect(const uint32_t maxInterval, fun*workingFun=nullptr, fun*missingFun=nullptr, fun*recoverFun=nullptr, fun*loseFun=nullptr) : maxInterval(maxInterval), workingFun(workingFun), missingFun(missingFun), recoverFun(recoverFun), loseFun(loseFun) {}
-    template<auto getSystime>
+    template<auto getSystime = sysTime>
     void update() {lastUpdate = getSystime();}
-    template<auto getSystime>
+    template<auto getSystime = sysTime>
     [[nodiscard]] State detect() {
         if (getSystime() - lastUpdate >= maxInterval)
-            if (s == LOSE || s == MISSING) s = MISSING; else s = LOSE;
+            if (s == State::LOSE || s == State::MISSING) s = State::MISSING; else s = State::LOSE;
         else
-            if (s == RECOVER || s == WORKING) s = WORKING; else s = RECOVER;
+            if (s == State::RECOVER || s == State::WORKING) s = State::WORKING; else s = State::RECOVER;
         return s;
     }
     void working(void *parament = nullptr) const { if (workingFun) workingFun(parament); }
@@ -37,7 +42,7 @@ public:
 private:
     uint32_t maxInterval = 0;
     uint32_t lastUpdate = 0;
-    State s = WORKING;
+    State s = State::WORKING;
     fun *workingFun;
     fun *missingFun;
     fun *recoverFun;
