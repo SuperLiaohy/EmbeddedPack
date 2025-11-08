@@ -4,6 +4,8 @@
 #pragma once
 
 #include "Platform.h"
+#include "cmath"
+
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
@@ -56,11 +58,17 @@ public:
 
     [[gnu::always_inline]] inline static float
     sin(float input) {
-        return arm_cos_f32(input);
+        return arm_sin_f32(input);
     }
 
     [[gnu::always_inline]] inline static float
     cos(float input) {
         return arm_cos_f32(input);
     }
+    [[gnu::always_inline]] inline static float
+    sqrtf(float input) {
+        return std::sqrt(input);
+    }
+
+
 };

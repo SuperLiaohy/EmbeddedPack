@@ -7,48 +7,21 @@
 
 #include "../Matrix/Matrix.hpp"
 
-
-namespace quaternion_dep {
-    template<uint32_t T>
-    using Vec = RowVec<T>;
-
-    template<bool Unit>
-    struct UnitQ;
-
-    template<>
-    struct UnitQ<true> {
-        Vec<3> Spin;
-    };
-
-    template<>
-    struct UnitQ<false> {
-    };
-}
-
-template<bool Unit = false>
-class Quaternion : public quaternion_dep::UnitQ<Unit> {
+template<mathPl pl = Windows>
+class Quaternion {
 public:
     template<uint32_t T>
-    using Vec = quaternion_dep::Vec<T>;
+    using Vec = ColVec<T, pl>;
 
-    static consteval Quaternion zero() { return Quaternion{0, 0, 0, 0}; }
+    static constexpr Quaternion zero() { return Quaternion{0, 0, 0, 0}; }
 
-    static consteval Quaternion init() { return Quaternion{1, 0, 0, 0}; }
+    static constexpr Quaternion init() { return Quaternion{1, 0, 0, 0}; }
 
 public:
-    constexpr Quaternion(float w, float x, float y, float z) requires((!Unit)): w(w), u(Vec<3>(
+    constexpr Quaternion(float w, float x, float y, float z) : w(w), u(Vec<3>(
             {x, y, z})) {};
 
-    constexpr Quaternion(float w, float x, float y, float z) requires((Unit))
-            : quaternion_dep::UnitQ<Unit>(Vec<3>({x, y, z})), w(w), u(Vec<3>({x, y, z})) {};
-
-    constexpr Quaternion(float w, const Vec<3> &u) requires((Unit)): quaternion_dep::UnitQ<Unit>(u), w(w), u(u) {};
-
-    constexpr Quaternion(float w, const Vec<3> &u) requires((!Unit)): w(w), u(u) {};
-
-    constexpr Quaternion(float theta, const Vec<3> &vec, bool) requires((Unit))
-            : quaternion_dep::UnitQ<Unit>(vec), w(Vec<3>::cos(theta / 2)), u(Vec<3>::sin(theta / 2) * vec) {};
-
+    constexpr Quaternion(float w, const Vec<3> &u) : w(w), u(u) {};
 
     [[nodiscard]] constexpr Quaternion derivative(float wx, float wy, float wz) const {
         return Quaternion(0, wx * 0.5f, wy * 0.5f, wz * 0.5f) * (*this);
@@ -75,31 +48,28 @@ public:
     }
 
     constexpr Quaternion operator-() const {
-        return Quaternion{-w, -u(1), -u(2), -u(3)};
+        return Quaternion{-w, -u[0], -u[1], -u[2]};
     }
 
     constexpr Quaternion conj() const {
-        return Quaternion{w, -u(1), -u(2), -u(3)};
+        return Quaternion{w, -u[0], -u[1], -u[2]};
     }
 
     constexpr Quaternion operator~() const {
-        return Quaternion{w, -u(1), -u(2), -u(3)};
+        return Quaternion{w, -u[0], -u[1], -u[2]};
     }
 
-    constexpr Quaternion inv() const requires((!Unit)) {
+    constexpr Quaternion normalized() const {
         auto size = w * w + (u * u);
         if (size < 1e-7) { return zero(); }
-        return Quaternion{w / size, -u(1) / size, -u(2) / size, -u(3) / size};
+        return Quaternion{w / size, u / size};
     }
 
-    constexpr Quaternion inv() const requires((Unit)) {
-        return Quaternion{w, -u(1), -u(2), -u(3)};
+    constexpr Quaternion inv() const {
+        auto size = w * w + (u * u);
+        if (size < 1e-7) { return zero(); }
+        return Quaternion{w / size, -u / size};
     }
-
-    void update(float theta) requires((Unit)) {
-        w = Vec<3>::cos(theta / 2);
-        u = Vec<3>::sin(theta / 2) * this->Spin;
-    };
 
     template<typename OStream>
     friend OStream &operator<<(OStream &os, const Quaternion &mat) {
@@ -113,6 +83,24 @@ public:
 protected:
     float w;
     Vec<3> u;
+};
+
+template<mathPl pl = Windows>
+class UnitQuat : public Quaternion<pl> {
+public:
+    template<uint32_t T>
+    using Vec = Quaternion<pl>::template Vec<T>;
+
+    constexpr UnitQuat(float theta, const Vec<3> &vec) : Quaternion<pl>(pl::cos(theta / 2), pl::sin(theta / 2) * vec) {};
+    constexpr explicit UnitQuat(const Quaternion<pl>& q) : Quaternion<pl>(q) {};
+
+    constexpr UnitQuat inv() const {return UnitQuat(this->conj());}
+
+    void update(float theta) {
+        this->w = pl::cos(theta / 2);
+        this->u = pl::sin(theta / 2) * this->Spin;
+    };
+
 };
 
 

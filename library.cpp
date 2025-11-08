@@ -8,6 +8,7 @@
 #include "Components/Detect.h"
 #include "Components/Manager.h"
 #include "Math/Matrix/Matrix.hpp"
+#include "Math/Quaternion/Quaternion.hpp"
 
 auto get_systime() -> uint32_t {
     static auto start_time = std::chrono::high_resolution_clock::now();
@@ -16,9 +17,50 @@ auto get_systime() -> uint32_t {
     return systime;
 };
 
+struct empty_struct {
+    static int a;
+    static int b;
+    static void print() {
+        std::cout << "static a: "<< a << std::endl;
+        std::cout << "empty struct" << std::endl;
+    }
+    ~empty_struct() {
+        std::cout << "empty struct is closed" << std::endl;
+    }
+};
+int empty_struct::a = 1;
+int empty_struct::b = 1;
+struct real_struct : empty_struct{
+    int value;
+    real_struct(int v) : value(v) {}
+    void print() {
+        std::cout << "real_struct " << value << std::endl;
+    }
+    ~real_struct() {
+        std::cout << "real_struct is closed" << std::endl;
+    }
+};
+
 
 
 int main() {
+    std::cout << "normalized(): " << ColVec<3>{{2,2,0}}.normalized() << std::endl;
+    UnitQuat q{120*std::numbers::pi/180,ColVec<3>{{2,2,0}}.normalized()};
+    UnitQuat q1(q.normalized());
+
+    std::cout << q.inv() << std::endl;
+    std::cout << q1 << std::endl;
+
+    std::cout << "empty_struct size: " << sizeof(empty_struct) << std::endl;
+    std::cout << "real_struct size: " << sizeof(real_struct) << std::endl;
+    empty_struct tool;
+    tool.print();
+    std::cout << "empty_struct size: " << sizeof(tool) << std::endl;
+    real_struct real(2);
+    real.print();
+    empty_struct::print();
+    std::cout << "real_struct size: " << sizeof(real_struct) << std::endl;
+
 
     ColVec<3> v1({1, 2, 3});
     ColVec<3> v2({1, 2, 3});

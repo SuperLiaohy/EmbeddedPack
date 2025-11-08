@@ -157,6 +157,8 @@ public:
 
     constexpr Matrix<COLS, ROWS> operator~() const noexcept {return transpose();}
 
+    constexpr Matrix operator-() const noexcept {return *this * -1.0f;}
+
     void operator+=(const Matrix &other) noexcept {
         pl::matrix_add(&matrix, &other.matrix, &matrix);
     }
@@ -192,12 +194,22 @@ public:
 
 // vec
 public:
+
+    [[nodiscard]] float norm() const noexcept requires(is_vec()) {
+        if constexpr (ROWS == 1) {
+            return pl::sqrtf((*this * this->transpose())[0]);
+        } else {
+            return pl::sqrtf((this->transpose() * *this)[0]);
+        }
+    };
+
+    [[nodiscard]] Matrix normalized() const noexcept requires(is_vec()) {return (*this / norm());};
+
     /**
      * @brief 向量差乘 vector cross
      * @param other 另外一个向量 the other vector
      * @return Matrix 相同维度的向量 vector of the same dimension
      */
-    // Matrix operator^(const Matrix &other) const noexcept requires(is_vec() || is_point()) ;
     Matrix operator^(const Matrix &other) const noexcept requires(is_vec()&&(ROWS==3||COLS==3)) {
         Matrix result;
         const auto &result_array = reinterpret_cast<float*>(result.data);
@@ -334,8 +346,8 @@ inline Matrix<ROWS, COLS, pl> Matrix<ROWS, COLS, pl>::inv() noexcept requires(is
     return ret == ARM_MATH_SUCCESS ? result : zeros();
 }
 
-template<uint32_t ROWS>
-using ColVec = Matrix<ROWS, 1>;
+template<uint32_t ROWS, mathPl pl = Windows>
+using ColVec = Matrix<ROWS, 1, pl>;
 
-template<uint32_t COLS>
-using RowVec = Matrix<1, COLS>;
+template<uint32_t COLS, mathPl pl = Windows>
+using RowVec = Matrix<1, COLS, pl>;
