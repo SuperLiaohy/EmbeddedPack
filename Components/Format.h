@@ -4,20 +4,12 @@
 
 #pragma once
 #include <array>
+#include <charconv>
 #include <cstdint>
+#include <tuple>
 #include <string.h>
-#include <bits/locale_facets_nonio.h>
 
 namespace EP::Component {
-// template<auto  Prefix>
-// class  Logger  {
-//     uint8_t buffer[256]{};
-// public:
-//     void log(const char* msg)  const  {
-//         constexpr int len = Prefix.len();
-//         memcpy(const_cast<uint8_t*>(buffer), Prefix.chars, Prefix.len());
-//     }
-// };
 
 struct Section {
     std::size_t src;
@@ -29,6 +21,8 @@ struct Section {
 
 template<std::size_t  N>
 struct  Str  {
+    char  chars[N]{};
+
     [[nodiscard]] consteval std::size_t len() const  {return N;}
     consteval const char* c_str() const {return chars;}
     consteval const char* data() const {return chars;}
@@ -101,8 +95,17 @@ struct  Str  {
         return sections;
     }
 
-    char  chars[N]{};
-
+    template<std::size_t X>
+    consteval Str<N+X-1> operator+(Str<X> str) const {
+        Str<N+X-1> result = {};
+        for(std::size_t i = 0; i < N-1; ++i) {
+            result.chars[i] = chars[i];
+        }
+        for(std::size_t i = 0; i < X; ++i) {
+            result.chars[i+N-1] = str.chars[i];
+        }
+        return result;
+    }
 };
 
 template<typename T>
@@ -111,17 +114,29 @@ void fmtter(char*& buf, const T& value);
 
 template<>
 void fmtter<int>(char*& buf, const int& value) {
-    char tmp[11];
-    char* p = tmp + 11;
-    unsigned u = value < 0 ? static_cast<unsigned>(-value) : static_cast<unsigned>(value);
-    do { *--p = '0' + (u % 10); u /= 10; } while (u);
-    if (value < 0) *--p = '-';
-    size_t len = tmp + 11 - p;
-    // if (len >= bufsz) len = bufsz - 1;
-    for (size_t i = 0; i < len; ++i) buf[i] = p[i];
-    buf+= len;
-    // buf[len] = '\0';
-    // return len;
+    // char tmp[11];
+    // char* p = tmp + 11;
+    // unsigned u = value < 0 ? static_cast<unsigned>(-value) : static_cast<unsigned>(value);
+    // do { *--p = '0' + (u % 10); u /= 10; } while (u);
+    // if (value < 0) *--p = '-';
+    // size_t len = tmp + 11 - p;
+    // for (size_t i = 0; i < len; ++i) buf[i] = p[i];
+    // buf+= len;
+    auto ptr = std::to_chars(buf, buf+10, value);
+    buf = ptr.ptr;
+}
+template<>
+void fmtter<uint32_t>(char*& buf, const uint32_t& value) {
+    // char tmp[11];
+    // char* p = tmp + 11;
+    // unsigned u = value < 0 ? static_cast<unsigned>(-value) : static_cast<unsigned>(value);
+    // do { *--p = '0' + (u % 10); u /= 10; } while (u);
+    // if (value < 0) *--p = '-';
+    // size_t len = tmp + 11 - p;
+    // for (size_t i = 0; i < len; ++i) buf[i] = p[i];
+    // buf+= len;
+    auto ptr = std::to_chars(buf, buf+10, value);
+    buf = ptr.ptr;
 }
 
 template<>
@@ -150,26 +165,26 @@ struct is_Str<Str<N>> : std::true_type {};
 template <typename T>
 concept String = is_Str<std::remove_cvref_t<T>>::value;
 
-template <auto fmt,typename ArgTuple, typename IndexSequence>
+template <String auto fmt,typename ArgTuple, typename IndexSequence>
 struct for_each_impl;
 
-template <auto fmt, typename ArgTuple, std::size_t... I>
+template <String auto fmt, typename ArgTuple, std::size_t... I>
 struct for_each_impl<fmt, ArgTuple, std::index_sequence<I...>> {
     inline __attribute__((always_inline)) static std::size_t execute(char* buffer, ArgTuple&& argTuple) {
         constexpr std::size_t count = fmt.formatCount();
         static_assert(count == std::tuple_size_v<ArgTuple>, "format count is not equal to sizeof...(args)" );
-        constexpr std::array<std::size_t, count> indexes = fmt.template formatIndex<count>();
         constexpr std::array<Section, count+1> sections = fmt.template formatSection<count>();
+        auto p = buffer;
         (
             []<auto sections, typename T, std::size_t index>(char*&buffer, T&& value) {
                 if constexpr (sections[index].len()>=1) {
                     memcpy(buffer, fmt.data()+sections[index].src, sections[index].len());
-                    buffer += sections[index].dst - sections[index].src;
+                    buffer += sections[index].len();
                 } else if constexpr (!sections[index].isEmpty()) {
-                    for (int i = sections[index].src; i < sections[index].dst; ++i) {
-                        *buffer = fmt.data()[i];
+                    // for (int i = sections[index].src; i < sections[index].dst; ++i) {
+                        *buffer = fmt.data()[sections[index].src];
                         ++buffer;
-                    }
+                    // }
                 }
                 fmtter<std::remove_reference_t<T>>(buffer, std::forward<T>(value));
             }.template operator()<sections, std::tuple_element_t<I, ArgTuple>, I>(buffer, std::get<I>(std::forward<ArgTuple>(argTuple)))
@@ -177,17 +192,18 @@ struct for_each_impl<fmt, ArgTuple, std::index_sequence<I...>> {
         );
         if constexpr (sections[count].len()>=1) {
             memcpy(buffer, fmt.data()+sections[count].src, sections[count].len());
+            buffer += sections[count].len();
         } else if constexpr (!sections[count].isEmpty()) {
-            for (int i = sections[count].src; i < sections[count].dst; ++i) {
-                *buffer = fmt.data()[i];
+            // for (int i = sections[count].src; i < sections[count].dst; ++i) {
+                *buffer = fmt.data()[sections[count].src];
                 ++buffer;
-            }
+            // }
         }
-        return count;
+        return buffer - p;
     }
 };
 
-template<auto fmt, typename...Args>
+template<String auto fmt, typename...Args>
 std::size_t format(char* buffer,  Args&&... args) {
     using ArgTuple = std::tuple<Args...>;
     using Indices = std::make_index_sequence<sizeof...(Args)>;
