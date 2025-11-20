@@ -34,7 +34,7 @@ void test_sprintf() {
     for (int i = 0; i < N; ++i) {
         int number = distribution(gen);
 
-        int len = std::sprintf(buf, "user %d score %d rank %d", number, number+1, 100-number);
+        int len = std::sprintf(buf, "user %d score %d rank %.5f", number, number+1, 1.214213f);
         black_hole += len;
     }
     auto end = std::chrono::high_resolution_clock::now();
@@ -84,7 +84,8 @@ void test_own_fmt_to() {
     auto start = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < N; ++i) {
         int number = distribution(gen);
-        auto len = EP::Component::format<EP::Component::Str{"user {} score {} rank {}"}>(buf, number, number+1, 100-number);
+        // auto len = EP::Component::format<EP::Component::Str{"user {} score {} rank {}"}>(buf, number, number+1, 100-number);
+        auto len = EP::Component::format<EP::Component::Str{"user {} score {} rank {.5}"}>(buf, number, number+1, 1.214213f);
         black_hole += len;
     }
     auto end = std::chrono::high_resolution_clock::now();
@@ -96,8 +97,8 @@ int main() {
     std::cout << "2000万次！\n\n";
 
     test_sprintf();
-    test_std_format_to();
-    test_fmt_format_to();
+    // test_std_format_to();
+    // test_fmt_format_to();
     test_own_fmt_to();
 
     std::cout << "\n示例输出: " << buf << "\n";
